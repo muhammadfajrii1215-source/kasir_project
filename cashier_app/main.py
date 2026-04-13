@@ -26,9 +26,6 @@ SERVER_PORT = 9000         # Port yang sama dengan server.py
 class KoneksiServer:
     """
     Mengelola koneksi ke server lokal cabang.
-    
-    Analogi: Ini seperti "telepon" yang dipakai kasir
-    untuk bicara dengan kepala toko di kantor belakang.
     """
     
     def __init__(self):
@@ -574,32 +571,35 @@ class HalamanKasir:
                 self.tabel_produk.insert('', 'end', values=(
                     p['barcode'],
                     p['nama_produk'],
-                    f"Rp {p['harga']:,.0f}",
+                    f"Rp {float(p['harga']):,.0f}",
                     p['stok']
                 ))
         else:
             messagebox.showerror("Error", "Gagal memuat daftar produk!")
     
     def cari_dan_tambah(self):
-        """Cari produk berdasarkan input dan tambah ke keranjang."""
-        teks = self.entry_cari.get().strip()
-        if not teks:
-            return
-        
-        # Coba cari by barcode dulu
+        """Cari produk berdasarkan pilihan di tabel atau input manual."""
+        item_terpilih = self.tabel_produk.selection()
+
+        if item_terpilih:
+            nilai = self.tabel_produk.item(item_terpilih[0])['values']
+            barcode = nilai[0]
+        else:
+            barcode = self.entry_cari.get().strip()
+            if not barcode:
+                messagebox.showwarning("Peringatan", "Pilih produk dulu atau ketik barcode!")
+                return
+
         response = self.server.kirim({
             'aksi': 'SCAN_BARCODE',
-            'barcode': teks
+            'barcode': barcode
         })
-        
+
         if response and response.get('sukses'):
             self.tambah_ke_keranjang(response['produk'])
             self.entry_cari.delete(0, 'end')
         else:
-            messagebox.showwarning(
-                "Tidak Ditemukan",
-                f"Produk '{teks}' tidak ditemukan!"
-            )
+            messagebox.showwarning("Tidak Ditemukan", f"Produk '{barcode}' tidak ditemukan!")
     
     def tambah_dari_tabel(self, event):
         """Double-click pada tabel produk = tambah ke keranjang."""
@@ -669,11 +669,13 @@ class HalamanKasir:
         if not item:
             messagebox.showinfo("Info", "Pilih item yang ingin dihapus!")
             return
-        
-        # Cari dan hapus dari list keranjang
+
         idx = self.tabel_keranjang.index(item[0])
-        self.keranjang.pop(idx)
-        self.refresh_keranjang()
+        nama = self.keranjang[idx]['nama']
+
+        if messagebox.askyesno("Hapus Item", f"Hapus '{nama}' dari keranjang?"):
+            self.keranjang.pop(idx)
+            self.refresh_keranjang()
     
     def update_kembalian(self, event=None):
         """Update label kembalian saat uang bayar diubah."""
