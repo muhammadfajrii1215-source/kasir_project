@@ -120,7 +120,7 @@ class HalamanLogin:
         
         tk.Label(
             frame_judul,
-            text="ambamart",
+            text="🛒  SISTEM KASIR",
             font=('Helvetica', 20, 'bold'),
             bg='#16213e',
             fg='#e94560'
@@ -128,7 +128,7 @@ class HalamanLogin:
         
         tk.Label(
             frame_judul,
-            text="kasir terdistribusi",
+            text="Multi Cabang Terdistribusi",
             font=('Helvetica', 10),
             bg='#16213e',
             fg='#aaaaaa'
@@ -765,7 +765,7 @@ class HalamanKasir:
         frame.pack(fill='both', expand=True)
         
         # Header struk
-        tk.Label(frame, text="ambamart",
+        tk.Label(frame, text="MINIMARKET SEGAR",
             font=('Courier', 14, 'bold'), bg='white').pack()
         tk.Label(frame, text="Terima kasih telah berbelanja!",
             font=('Courier', 9), bg='white').pack()
