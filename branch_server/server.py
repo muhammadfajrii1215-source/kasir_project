@@ -295,9 +295,9 @@ def thread_sinkronisasi():
                     # Tandai semua transaksi yang berhasil di-sync
                     for trx in pending:
                         tandai_sudah_sync(trx['id_transaksi'])
-                    print(f"[SYNC] ✅ {len(pending)} transaksi berhasil disync!")
+                    print(f"[SYNC] [OK] {len(pending)} transaksi berhasil disync!")
                 else:
-                    print(f"[SYNC] ❌ Sync gagal: {response.get('pesan')}")
+                    print(f"[SYNC] [FAIL] Sync gagal: {response.get('pesan')}")
                 
                 sock_pusat.close()
                 

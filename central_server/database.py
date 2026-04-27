@@ -33,11 +33,11 @@ def test_koneksi():
     print("Testing koneksi ke database pusat...")
     conn = get_connection()
     if conn:
-        print("✅ Berhasil konek ke kasir_pusat!")
+        print("[OK] Berhasil konek ke kasir_pusat!")
         conn.close()
         return True
     else:
-        print("❌ Gagal konek ke kasir_pusat!")
+        print("[FAIL] Gagal konek ke kasir_pusat!")
         print("   Pastikan database kasir_pusat sudah dibuat.")
         return False
 
@@ -145,7 +145,7 @@ def simpan_transaksi_dari_cabang(kode_cabang, transaksi_list):
                 berhasil += 1
 
             conn.commit()
-            print(f"[DB PUSAT] ✅ {berhasil} transaksi dari cabang '{kode_cabang}' disimpan")
+            print(f"[DB PUSAT] [OK] {berhasil} transaksi dari cabang '{kode_cabang}' disimpan")
             return {
                 'sukses': True,
                 'pesan': f'{berhasil} transaksi berhasil disimpan',

@@ -15,20 +15,7 @@ db_lock = threading.Lock()
 HOST = '0.0.0.0'
 PORT = 9001
 
-DB_CONFIG_PUSAT = {
-    'host':     'localhost',
-    'user':     'root',
-    'password': 'g-artyone',
-    'database': 'kasir_pusat',
-    'charset':  'utf8mb4'
-}
-
-def get_connection():
-    try:
-        return mysql.connector.connect(**DB_CONFIG_PUSAT)
-    except mysql.connector.Error as e:
-        print(f"[PUSAT ERROR] Koneksi DB gagal: {e}")
-        return None
+# import mysql.connector is handled in database.py
 
 def handle_cabang(conn, alamat):
     """Tangani satu koneksi masuk dari server cabang."""
@@ -68,7 +55,7 @@ def jalankan_server_pusat():
     print("=" * 50)
 
     if not test_koneksi():
-        print("\n❌ Server tidak bisa dimulai — database bermasalah!")
+        print("\n[FAIL] Server tidak bisa dimulai — database bermasalah!")
         print("   Pastikan database 'kasir_pusat' sudah dibuat.")
         return
 
@@ -77,7 +64,7 @@ def jalankan_server_pusat():
     srv.bind((HOST, PORT))
     srv.listen(10)
 
-    print(f"\n[PUSAT] ✅ Siap menerima sinkronisasi di port {PORT}")
+    print(f"\n[PUSAT] [OK] Siap menerima sinkronisasi di port {PORT}")
     print("[PUSAT] Tekan Ctrl+C untuk hentikan\n")
 
     try:

@@ -63,13 +63,13 @@ def test_koneksi():
     conn = get_connection()
     
     if conn:  # Kalau conn tidak None (berhasil konek)
-        print("✅ BERHASIL terhubung ke MySQL!")
+        print("[OK] BERHASIL terhubung ke MySQL!")
         print(f"   Host    : {DB_CONFIG['host']}")
         print(f"   Database: {DB_CONFIG['database']}")
         conn.close()  # Tutup koneksi setelah selesai
         return True
     else:
-        print("❌ GAGAL terhubung ke MySQL!")
+        print("[FAIL] GAGAL terhubung ke MySQL!")
         print("   Pastikan:")
         print("   1. MySQL Server sudah berjalan")
         print("   2. Username dan password benar")
@@ -319,7 +319,7 @@ def simpan_transaksi(kasir_id, items, uang_bayar):
             # Simpan semua perubahan sekaligus
             conn.commit()
             
-            print(f"✅ Transaksi {id_trx} berhasil disimpan!")
+            print(f"[OK] Transaksi {id_trx} berhasil disimpan!")
             print(f"   Total   : Rp {total:,.0f}")
             print(f"   Bayar   : Rp {uang_bayar:,.0f}")
             print(f"   Kembali : Rp {kembalian:,.0f}")
