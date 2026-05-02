@@ -1,0 +1,4 @@
+# Daftar library yang perlu diinstall sebelum menjalankan aplikasi
+# Jalankan: pip install -r requirements.txt
+
+mysql-connector-python==8.3.0

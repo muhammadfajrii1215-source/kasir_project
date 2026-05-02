@@ -1,21 +1,12 @@
-# ============================================================
-# FILE: central_server/server.py
-# TUJUAN: Server pusat yang menerima sinkronisasi dari cabang-cabang
-# ============================================================
+# Server pusat — menerima sinkronisasi dari server cabang
 
 import socket
 import threading
 import json
 from database import simpan_transaksi_dari_cabang, test_koneksi
 
-# Kunci mutex untuk database pusat
-db_lock = threading.Lock()
-
-# ---- Konfigurasi ----
 HOST = '0.0.0.0'
 PORT = 9001
-
-# import mysql.connector is handled in database.py
 
 def handle_cabang(conn, alamat):
     """Tangani satu koneksi masuk dari server cabang."""

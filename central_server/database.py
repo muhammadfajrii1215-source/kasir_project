@@ -1,26 +1,21 @@
-# database server pusat
-# ============================================================
-# FILE: central_server/database.py
-# TUJUAN: Semua fungsi database untuk server pusat
-# ============================================================
+# Fungsi-fungsi database untuk server pusat
 
 import mysql.connector
 import threading
 
-# Mutex untuk mencegah race condition di server pusat
+# mutex agar sinkronisasi dari banyak cabang tidak bentrok
 db_lock = threading.Lock()
 
 DB_CONFIG = {
     'host':     'localhost',
     'user':     'root',
-    'password': 'g-artyone',   # ← Sesuaikan dengan password MySQL kamu
+    'password': 'g-artyone',   # sesuaikan dengan password MySQL kamu
     'database': 'kasir_pusat',
     'charset':  'utf8mb4'
 }
 
 
 def get_connection():
-    """Buat koneksi ke database pusat."""
     try:
         return mysql.connector.connect(**DB_CONFIG)
     except mysql.connector.Error as e:
@@ -29,7 +24,6 @@ def get_connection():
 
 
 def test_koneksi():
-    """Test apakah koneksi ke database pusat berhasil."""
     print("Testing koneksi ke database pusat...")
     conn = get_connection()
     if conn:
@@ -43,17 +37,10 @@ def test_koneksi():
 
 
 def get_id_cabang(kode_cabang):
-    """
-    Cari ID cabang berdasarkan kode cabang.
-    
-    Return:
-        int : ID cabang
-        None: Kalau tidak ditemukan
-    """
+    """Cari ID cabang berdasarkan kode. Return int atau None."""
     conn = get_connection()
     if not conn:
         return None
-
     try:
         cursor = conn.cursor()
         cursor.execute(
@@ -72,24 +59,16 @@ def get_id_cabang(kode_cabang):
 
 def simpan_transaksi_dari_cabang(kode_cabang, transaksi_list):
     """
-    Simpan daftar transaksi yang diterima dari server cabang.
-    
-    Parameter:
-        kode_cabang    (str) : Kode cabang pengirim
-        transaksi_list (list): Daftar transaksi beserta detailnya
-    
-    Return:
-        dict: {'sukses': bool, 'pesan': str, 'jumlah': int}
+    Simpan transaksi yang dikirim dari server cabang.
+    Transaksi duplikat diabaikan secara otomatis.
     """
-    with db_lock:   # Kunci mutex — hanya 1 cabang yang bisa simpan dalam satu waktu
+    with db_lock:
         conn = get_connection()
         if not conn:
             return {'sukses': False, 'pesan': 'Koneksi DB pusat gagal', 'jumlah': 0}
 
         try:
             cursor = conn.cursor()
-
-            # Cari ID cabang
             cabang_id = get_id_cabang(kode_cabang)
             if not cabang_id:
                 return {
@@ -99,18 +78,16 @@ def simpan_transaksi_dari_cabang(kode_cabang, transaksi_list):
                 }
 
             berhasil = 0
-
             for trx in transaksi_list:
-                # Cek duplikat — jangan simpan dua kali
+                # cek duplikat sebelum insert
                 cursor.execute("""
                     SELECT id FROM transaksi_pusat
                     WHERE id_transaksi = %s AND cabang_id = %s
                 """, (trx['id_transaksi'], cabang_id))
 
                 if cursor.fetchone():
-                    continue    # Sudah ada, lewati
+                    continue  # sudah ada, lewati
 
-                # Simpan transaksi
                 cursor.execute("""
                     INSERT INTO transaksi_pusat
                         (id_transaksi, cabang_id, kasir_username,
@@ -126,7 +103,6 @@ def simpan_transaksi_dari_cabang(kode_cabang, transaksi_list):
                     trx['waktu_transaksi']
                 ))
 
-                # Simpan detail barang
                 for detail in trx.get('detail', []):
                     cursor.execute("""
                         INSERT INTO detail_transaksi_pusat
@@ -145,7 +121,7 @@ def simpan_transaksi_dari_cabang(kode_cabang, transaksi_list):
                 berhasil += 1
 
             conn.commit()
-            print(f"[DB PUSAT] [OK] {berhasil} transaksi dari cabang '{kode_cabang}' disimpan")
+            print(f"[DB PUSAT] {berhasil} transaksi dari cabang '{kode_cabang}' disimpan")
             return {
                 'sukses': True,
                 'pesan': f'{berhasil} transaksi berhasil disimpan',
@@ -162,14 +138,10 @@ def simpan_transaksi_dari_cabang(kode_cabang, transaksi_list):
 
 
 def get_laporan_semua_cabang():
-    """
-    Ambil ringkasan transaksi dari semua cabang.
-    Berguna untuk melihat laporan gabungan.
-    """
+    """Ambil ringkasan omset dari semua cabang, diurutkan terbesar dulu."""
     conn = get_connection()
     if not conn:
         return []
-
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
@@ -191,9 +163,6 @@ def get_laporan_semua_cabang():
         conn.close()
 
 
-# ============================================================
-# Test langsung kalau file ini dijalankan sendiri
-# ============================================================
 if __name__ == "__main__":
     test_koneksi()
 

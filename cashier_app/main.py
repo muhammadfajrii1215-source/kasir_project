@@ -1,8 +1,4 @@
-# ============================================================
-# FILE: cashier_app/main.py
-# TUJUAN: Aplikasi kasir desktop dengan tampilan GUI
-# LIBRARY: Tkinter (sudah built-in di Python, tidak perlu install)
-# ============================================================
+# Aplikasi kasir desktop — GUI berbasis Tkinter
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -11,32 +7,20 @@ import json
 import threading
 from datetime import datetime
 
+SERVER_HOST = 'localhost'
+SERVER_PORT = 9000
 
-# ============================================================
-# KONFIGURASI: Alamat server lokal cabang
-# ============================================================
-SERVER_HOST = 'localhost'  # Server lokal ada di komputer yang sama
-SERVER_PORT = 9000         # Port yang sama dengan server.py
-
-
-# ============================================================
-# CLASS KONEKSI KE SERVER
-# ============================================================
 
 class KoneksiServer:
-    """
-    Mengelola koneksi ke server lokal cabang.
-    """
     
     def __init__(self):
         self.socket = None
         self.terhubung = False
     
     def konek(self):
-        """Buat koneksi ke server lokal."""
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(5)  # Timeout 5 detik
+            self.socket.settimeout(5)
             self.socket.connect((SERVER_HOST, SERVER_PORT))
             self.terhubung = True
             return True
@@ -46,21 +30,12 @@ class KoneksiServer:
             return False
     
     def kirim(self, data):
-        """
-        Kirim data ke server dan tunggu response.
-        
-        Return:
-            dict: Response dari server
-            None: Kalau gagal
-        """
         if not self.terhubung:
             return None
-        
         try:
             pesan = json.dumps(data)
             self.socket.send(pesan.encode('utf-8'))
-            
-            response_raw = self.socket.recv(8192)  # Terima sampai 8KB
+            response_raw = self.socket.recv(8192)
             return json.loads(response_raw.decode('utf-8'))
             
         except Exception as e:
@@ -79,40 +54,24 @@ class KoneksiServer:
         self.terhubung = False
 
 
-# ============================================================
-# HALAMAN LOGIN
-# ============================================================
-
 class HalamanLogin:
-    """
-    Tampilan login kasir.
-    Kasir harus login sebelum bisa transaksi.
-    """
-    
     def __init__(self, root, callback_berhasil):
-        """
-        Parameter:
-            root              : Jendela utama Tkinter
-            callback_berhasil : Fungsi yang dipanggil kalau login berhasil
-        """
         self.root = root
         self.callback_berhasil = callback_berhasil
         self.server = KoneksiServer()
-        
         self.buat_tampilan()
     
     def buat_tampilan(self):
-        """Buat tampilan halaman login."""
         self.root.title("Sistem Kasir — Login")
-        self.root.geometry("400x350")
+        self.root.geometry("400x420")
         self.root.resizable(False, False)
         self.root.configure(bg='#1a1a2e')
         
-        # Tengahkan jendela di layar
+        # tengahkan di layar
         self.root.update_idletasks()
         x = (self.root.winfo_screenwidth() - 400) // 2
-        y = (self.root.winfo_screenheight() - 350) // 2
-        self.root.geometry(f"400x350+{x}+{y}")
+        y = (self.root.winfo_screenheight() - 420) // 2
+        self.root.geometry(f"400x420+{x}+{y}")
         
         # ---- JUDUL ----
         frame_judul = tk.Frame(self.root, bg='#16213e', pady=20)
@@ -149,11 +108,11 @@ class HalamanLogin:
             frame_form,
             font=('Helvetica', 12),
             bg='#0f3460', fg='white',
-            insertbackground='white',   # Warna kursor teks
+            insertbackground='white',
             relief='flat', bd=8
         )
         self.entry_username.pack(fill='x', pady=(0, 15))
-        self.entry_username.focus()     # Langsung fokus ke field ini
+        self.entry_username.focus()
         
         # Password
         tk.Label(
@@ -167,12 +126,11 @@ class HalamanLogin:
             font=('Helvetica', 12),
             bg='#0f3460', fg='white',
             insertbackground='white',
-            show='●',         # Tampilkan ● untuk menyembunyikan password
+            show='●',
             relief='flat', bd=8
         )
         self.entry_password.pack(fill='x', pady=(0, 20))
-        
-        # Bind Enter key → langsung login
+
         self.entry_password.bind('<Return>', lambda e: self.proses_login())
         
         # Tombol Login
@@ -183,10 +141,23 @@ class HalamanLogin:
             bg='#e94560', fg='white',
             relief='flat', bd=0,
             pady=10,
-            cursor='hand2',   # Kursor berubah jadi tangan saat hover
+            cursor='hand2',
             command=self.proses_login
         )
         self.btn_login.pack(fill='x')
+        
+        # Tombol Daftar (Akun Baru)
+        self.btn_register = tk.Button(
+            frame_form,
+            text="Daftar Akun Baru",
+            font=('Helvetica', 10),
+            bg='#1a1a2e', fg='#aaaaaa',
+            relief='flat', bd=0,
+            activebackground='#1a1a2e', activeforeground='#e94560',
+            cursor='hand2',
+            command=self.buka_register
+        )
+        self.btn_register.pack(pady=(10, 0))
         
         # Label status (untuk pesan error/info)
         self.label_status = tk.Label(
@@ -194,46 +165,43 @@ class HalamanLogin:
             font=('Helvetica', 10),
             bg='#1a1a2e', fg='#ff6b6b'
         )
-        self.label_status.pack(pady=(10, 0))
+        self.label_status.pack(pady=(5, 0))
+    
+    def buka_register(self):
+        """Pindah ke halaman registrasi."""
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        HalamanRegister(self.root)
     
     def proses_login(self):
-        """Proses klik tombol login."""
-        username = self.entry_username.get().strip()  # .strip() = hapus spasi di awal/akhir
+        username = self.entry_username.get().strip()
         password = self.entry_password.get()
-        
-        # Validasi: field tidak boleh kosong
+
         if not username or not password:
             self.label_status.config(text="⚠️  Username dan password wajib diisi!")
             return
-        
-        # Ubah tampilan saat loading
+
         self.btn_login.config(text="Menghubungkan...", state='disabled')
         self.label_status.config(text="Menghubungkan ke server...", fg='#aaaaaa')
-        self.root.update()  # Paksa update tampilan
-        
-        # Lakukan login di thread terpisah supaya UI tidak freeze
-        # (Kalau dilakukan di thread utama, UI akan "beku" saat konek ke server)
+        self.root.update()
+
+        # jalankan login di thread terpisah biar UI tidak freeze
         thread = threading.Thread(target=self._login_thread, args=(username, password))
         thread.daemon = True
         thread.start()
     
     def _login_thread(self, username, password):
-        """Proses login di background thread."""
-        # Konek ke server
         if not self.server.konek():
-            # Gagal konek → update UI dari main thread
-            self.root.after(0, self._login_gagal, 
+            self.root.after(0, self._login_gagal,
                            "❌  Tidak bisa konek ke server!\nPastikan server sudah dijalankan.")
             return
-        
-        # Kirim request login
+
         response = self.server.kirim({
             'aksi': 'LOGIN',
             'username': username,
             'password': password
         })
-        
-        # Update UI (harus dari main thread, pakai root.after)
+
         if response and response.get('sukses'):
             self.root.after(0, self._login_berhasil, response['kasir'])
         else:
@@ -256,53 +224,142 @@ class HalamanLogin:
         self.entry_password.delete(0, 'end')  # Hapus isi field password
 
 
-# ============================================================
-# HALAMAN KASIR UTAMA
-# ============================================================
+class HalamanRegister:
+    def __init__(self, root):
+        self.root = root
+        self.server = KoneksiServer()
+        self.buat_tampilan()
+
+    def buat_tampilan(self):
+        self.root.title("Sistem Kasir — Daftar")
+        self.root.geometry("400x450")
+        
+        # ---- JUDUL ----
+        frame_judul = tk.Frame(self.root, bg='#16213e', pady=15)
+        frame_judul.pack(fill='x')
+        
+        tk.Label(
+            frame_judul, text="DAFTAR KASIR BARU",
+            font=('Helvetica', 16, 'bold'),
+            bg='#16213e', fg='#e94560'
+        ).pack()
+        
+        # ---- FORM DAFTAR ----
+        frame_form = tk.Frame(self.root, bg='#1a1a2e', padx=40, pady=20)
+        frame_form.pack(fill='both', expand=True)
+        
+        # Nama Lengkap
+        tk.Label(frame_form, text="Nama Lengkap", font=('Helvetica', 10), bg='#1a1a2e', fg='white', anchor='w').pack(fill='x')
+        self.entry_nama = tk.Entry(frame_form, font=('Helvetica', 11), bg='#0f3460', fg='white', relief='flat', bd=5)
+        self.entry_nama.pack(fill='x', pady=(0, 10))
+        
+        # Username
+        tk.Label(frame_form, text="Username", font=('Helvetica', 10), bg='#1a1a2e', fg='white', anchor='w').pack(fill='x')
+        self.entry_username = tk.Entry(frame_form, font=('Helvetica', 11), bg='#0f3460', fg='white', relief='flat', bd=5)
+        self.entry_username.pack(fill='x', pady=(0, 10))
+        
+        # Password
+        tk.Label(frame_form, text="Password", font=('Helvetica', 10), bg='#1a1a2e', fg='white', anchor='w').pack(fill='x')
+        self.entry_password = tk.Entry(frame_form, font=('Helvetica', 11), bg='#0f3460', fg='white', show='●', relief='flat', bd=5)
+        self.entry_password.pack(fill='x', pady=(0, 20))
+        
+        # Tombol Daftar
+        self.btn_daftar = tk.Button(
+            frame_form, text="DAFTAR SEKARANG",
+            font=('Helvetica', 11, 'bold'), bg='#e94560', fg='white',
+            relief='flat', pady=10, cursor='hand2', command=self.proses_daftar
+        )
+        self.btn_daftar.pack(fill='x')
+        
+        # Tombol Kembali
+        tk.Button(
+            frame_form, text="Kembali ke Login",
+            font=('Helvetica', 10), bg='#1a1a2e', fg='#aaaaaa',
+            relief='flat', cursor='hand2', command=self.buka_login
+        ).pack(pady=(10, 0))
+        
+        self.label_status = tk.Label(frame_form, text="", font=('Helvetica', 10), bg='#1a1a2e', fg='#ff6b6b')
+        self.label_status.pack(pady=(5, 0))
+
+    def buka_login(self):
+        """Kembali ke halaman login."""
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        HalamanLogin(self.root, None)
+
+    def proses_daftar(self):
+        """Proses klik tombol daftar."""
+        nama = self.entry_nama.get().strip()
+        username = self.entry_username.get().strip()
+        password = self.entry_password.get()
+        
+        if not nama or not username or not password:
+            self.label_status.config(text="⚠️  Semua field wajib diisi!", fg='#ff6b6b')
+            return
+            
+        self.btn_daftar.config(text="Mendaftarkan...", state='disabled')
+        self.root.update()
+        
+        thread = threading.Thread(target=self._register_thread, args=(nama, username, password))
+        thread.daemon = True
+        thread.start()
+        
+    def _register_thread(self, nama, username, password):
+        if not self.server.konek():
+            self.root.after(0, self._register_hasil, False, "❌  Gagal konek ke server!")
+            return
+            
+        response = self.server.kirim({
+            'aksi': 'REGISTER',
+            'nama_lengkap': nama,
+            'username': username,
+            'password': password
+        })
+        
+        if response and response.get('sukses'):
+            self.root.after(0, self._register_hasil, True, "✅  Pendaftaran Berhasil!")
+        else:
+            pesan = response.get('pesan', 'Gagal daftar') if response else 'Server tidak merespon'
+            self.root.after(0, self._register_hasil, False, f"❌  {pesan}")
+
+    def _register_hasil(self, sukses, pesan):
+        self.btn_daftar.config(text="DAFTAR SEKARANG", state='normal')
+        if sukses:
+            messagebox.showinfo("Sukses", "Akun berhasil dibuat! Silakan login.")
+            self.buka_login()
+        else:
+            self.label_status.config(text=pesan, fg='#ff6b6b')
+
 
 class HalamanKasir:
-    """
-    Tampilan utama aplikasi kasir.
-    Di sini kasir bisa:
-    - Scan/cari produk
-    - Tambah ke keranjang
-    - Proses pembayaran
-    """
-    
+    """Halaman utama kasir: cari produk, isi keranjang, proses bayar."""
+
     def __init__(self, root, info_kasir, server):
         self.root = root
-        self.info_kasir = info_kasir    # {'id': 1, 'username': 'kasir1', 'nama_lengkap': 'Budi'}
+        self.info_kasir = info_kasir
         self.server = server
-        
-        self.keranjang = []             # Daftar barang yang akan dibeli
-        self.total = 0                  # Total harga
-        
+        self.keranjang = []
+        self.total = 0
         self.buat_tampilan()
-        self.muat_produk()              # Load daftar produk dari server
-    
+        self.muat_produk()
+
     def buat_tampilan(self):
-        """Buat tampilan utama kasir."""
         self.root.title(f"Kasir — {self.info_kasir['nama_lengkap']}")
         self.root.geometry("1100x700")
         self.root.configure(bg='#f0f4f8')
         
-        # Tengahkan
+        # tengahkan
         self.root.update_idletasks()
         x = (self.root.winfo_screenwidth() - 1100) // 2
         y = (self.root.winfo_screenheight() - 700) // 2
         self.root.geometry(f"1100x700+{x}+{y}")
-        
-        # ---- HEADER ----
+
         self.buat_header()
-        
-        # ---- KONTEN UTAMA (kiri + kanan) ----
+
         frame_konten = tk.Frame(self.root, bg='#f0f4f8')
         frame_konten.pack(fill='both', expand=True, padx=15, pady=(0, 15))
-        
-        # Panel kiri: Produk
+
         self.buat_panel_produk(frame_konten)
-        
-        # Panel kanan: Keranjang + Bayar
         self.buat_panel_keranjang(frame_konten)
     
     def buat_header(self):
@@ -350,17 +407,14 @@ class HalamanKasir:
         ).pack(side='left')
     
     def update_waktu(self):
-        """Update tampilan waktu setiap detik."""
         waktu = datetime.now().strftime("%A, %d %B %Y  %H:%M:%S")
         self.label_waktu.config(text=waktu)
-        # Panggil diri sendiri lagi setelah 1000ms (1 detik)
         self.root.after(1000, self.update_waktu)
     
     def buat_panel_produk(self, parent):
         """Panel kiri: daftar produk."""
         frame = tk.Frame(parent, bg='white', relief='flat', bd=1)
         frame.pack(side='left', fill='both', expand=True, padx=(0, 8))
-        
         # Judul panel
         tk.Label(
             frame, text="📦  DAFTAR PRODUK",
@@ -396,15 +450,13 @@ class HalamanKasir:
             command=self.cari_dan_tambah
         ).pack(side='left')
         
-        # Tabel produk
+        # tabel produk
         frame_tabel = tk.Frame(frame, bg='white')
         frame_tabel.pack(fill='both', expand=True, padx=10, pady=(0, 10))
-        
-        # Scrollbar
+
         scrollbar = ttk.Scrollbar(frame_tabel)
         scrollbar.pack(side='right', fill='y')
-        
-        # Tabel
+
         kolom = ('barcode', 'nama', 'harga', 'stok')
         self.tabel_produk = ttk.Treeview(
             frame_tabel,
@@ -414,29 +466,27 @@ class HalamanKasir:
             height=20
         )
         
-        # Header kolom
         self.tabel_produk.heading('barcode', text='Barcode')
         self.tabel_produk.heading('nama',    text='Nama Produk')
         self.tabel_produk.heading('harga',   text='Harga')
         self.tabel_produk.heading('stok',    text='Stok')
-        
-        # Lebar kolom
+
         self.tabel_produk.column('barcode', width=120, anchor='center')
         self.tabel_produk.column('nama',    width=200)
         self.tabel_produk.column('harga',   width=100, anchor='e')
         self.tabel_produk.column('stok',    width=60,  anchor='center')
-        
+
         self.tabel_produk.pack(fill='both', expand=True)
         scrollbar.config(command=self.tabel_produk.yview)
-        
-        # Double-click pada produk = tambah ke keranjang
+
+        # double-click = tambah ke keranjang
         self.tabel_produk.bind('<Double-Button-1>', self.tambah_dari_tabel)
     
     def buat_panel_keranjang(self, parent):
         """Panel kanan: keranjang belanja + pembayaran."""
         frame = tk.Frame(parent, bg='white', width=380)
         frame.pack(side='right', fill='y')
-        frame.pack_propagate(False)  # Jaga ukuran tetap 380px
+        frame.pack_propagate(False)
         
         # Judul
         tk.Label(
@@ -480,7 +530,7 @@ class HalamanKasir:
             command=self.hapus_item
         ).pack(fill='x', pady=(5, 0))
         
-        # ---- AREA PEMBAYARAN ----
+        # area pembayaran
         frame_bayar = tk.Frame(frame, bg='#ecf0f1', padx=15, pady=15)
         frame_bayar.pack(fill='x', side='bottom')
         
@@ -554,19 +604,14 @@ class HalamanKasir:
             command=self.batal_transaksi
         ).grid(row=4, column=0, columnspan=2, sticky='ew')
         
-        # Update kembalian saat uang bayar diubah
+        # update kembalian tiap kali angka bayar diubah
         self.entry_bayar.bind('<KeyRelease>', self.update_kembalian)
     
     def muat_produk(self):
-        """Muat daftar produk dari server."""
         response = self.server.kirim({'aksi': 'GET_PRODUK'})
-        
         if response and response.get('sukses'):
-            # Hapus isi tabel dulu
             for item in self.tabel_produk.get_children():
                 self.tabel_produk.delete(item)
-            
-            # Isi dengan data baru
             for p in response['produk']:
                 self.tabel_produk.insert('', 'end', values=(
                     p['barcode'],
@@ -619,47 +664,33 @@ class HalamanKasir:
             self.tambah_ke_keranjang(response['produk'])
     
     def tambah_ke_keranjang(self, produk):
-        """
-        Tambah produk ke keranjang.
-        Kalau sudah ada, tambah jumlahnya saja.
-        """
-        # Cek apakah produk sudah ada di keranjang
+        # kalau produk sudah ada, tambah jumlahnya
         for item in self.keranjang:
             if item['produk_id'] == produk['id']:
-                item['jumlah'] += 1  # Tambah jumlah
+                item['jumlah'] += 1
                 self.refresh_keranjang()
                 return
-        
-        # Produk baru, tambah ke daftar
         self.keranjang.append({
             'produk_id': produk['id'],
             'nama':      produk['nama_produk'],
             'harga':     float(produk['harga']),
             'jumlah':    1
         })
-        
         self.refresh_keranjang()
     
     def refresh_keranjang(self):
-        """Update tampilan keranjang dan total harga."""
-        # Hapus isi tabel keranjang
         for item in self.tabel_keranjang.get_children():
             self.tabel_keranjang.delete(item)
-        
-        # Isi ulang
         self.total = 0
         for item in self.keranjang:
             subtotal = item['harga'] * item['jumlah']
             self.total += subtotal
-            
             self.tabel_keranjang.insert('', 'end', values=(
                 item['nama'],
                 item['jumlah'],
                 f"Rp {item['harga']:,.0f}",
                 f"Rp {subtotal:,.0f}"
             ))
-        
-        # Update label total
         self.label_total.config(text=f"Rp {self.total:,.0f}")
         self.update_kembalian()
     
@@ -678,70 +709,45 @@ class HalamanKasir:
             self.refresh_keranjang()
     
     def update_kembalian(self, event=None):
-        """Update label kembalian saat uang bayar diubah."""
         try:
             bayar = float(self.entry_bayar.get().replace(',', ''))
             kembalian = bayar - self.total
-            
-            if kembalian >= 0:
-                self.label_kembalian.config(
-                    text=f"Rp {kembalian:,.0f}",
-                    fg='#27ae60'    # Hijau kalau cukup
-                )
-            else:
-                self.label_kembalian.config(
-                    text=f"Rp {kembalian:,.0f}",
-                    fg='#e74c3c'    # Merah kalau kurang
-                )
+            color = '#27ae60' if kembalian >= 0 else '#e74c3c'
+            self.label_kembalian.config(text=f"Rp {kembalian:,.0f}", fg=color)
         except ValueError:
             self.label_kembalian.config(text="Rp 0")
     
     def proses_pembayaran(self):
-        """Proses pembayaran transaksi."""
-        # Validasi keranjang tidak kosong
         if not self.keranjang:
             messagebox.showwarning("Peringatan", "Keranjang masih kosong!")
             return
-        
-        # Validasi uang bayar
         try:
             uang_bayar = float(self.entry_bayar.get().replace(',', ''))
         except ValueError:
             messagebox.showwarning("Peringatan", "Masukkan jumlah uang bayar!")
             return
-        
         if uang_bayar < self.total:
-            messagebox.showwarning("Peringatan", 
+            messagebox.showwarning("Peringatan",
                 f"Uang bayar kurang!\nTotal: Rp {self.total:,.0f}\n"
                 f"Bayar: Rp {uang_bayar:,.0f}")
             return
-        
-        # Konfirmasi
-        if not messagebox.askyesno("Konfirmasi", 
+        if not messagebox.askyesno("Konfirmasi",
             f"Proses pembayaran?\n\n"
             f"Total     : Rp {self.total:,.0f}\n"
             f"Bayar     : Rp {uang_bayar:,.0f}\n"
             f"Kembalian : Rp {uang_bayar - self.total:,.0f}"):
             return
-        
-        # Kirim ke server
         self.btn_bayar.config(text="Memproses...", state='disabled')
         self.root.update()
-        
         response = self.server.kirim({
             'aksi':       'TRANSAKSI',
             'items':      self.keranjang,
             'uang_bayar': uang_bayar
         })
-        
         self.btn_bayar.config(text="💳  PROSES PEMBAYARAN", state='normal')
-        
         if response and response.get('sukses'):
-            # Tampilkan struk sederhana
             self.tampilkan_struk(response, uang_bayar)
-            # Reset keranjang
             self.batal_transaksi()
-            # Refresh produk (update stok)
             self.muat_produk()
         else:
             pesan = response.get('pesan', 'Terjadi kesalahan') if response else 'Server tidak merespon'
@@ -824,12 +830,7 @@ class HalamanKasir:
             HalamanLogin(self.root, None)
 
 
-# ============================================================
-# ENTRY POINT — Titik masuk program
-# ============================================================
 if __name__ == "__main__":
-    root = tk.Tk()                  # Buat jendela utama
-    app = HalamanLogin(root, None)  # Tampilkan halaman login
-    root.mainloop()                 # Mulai event loop (program berjalan terus)
-    # mainloop() = program menunggu input user (klik, ketik, dll)
-    # Program baru berhenti kalau jendela ditutup
+    root = tk.Tk()
+    app = HalamanLogin(root, None)
+    root.mainloop()
